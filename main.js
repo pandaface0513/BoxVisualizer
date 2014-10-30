@@ -12,11 +12,25 @@ var boxes = new Array();
 
 var boost = 5;
 
+var PARTICLES_COUNT = 20000;
+
 var music = new Array(
   'audio/gost_cursed.mp3',
   'audio/wormhole.mp3',
   'audio/Warriors.mp3'
 );
+
+var clock = new THREE.Clock();
+
+var particles;
+var particlesMaterial;
+var particlesHue = 0;
+
+var sceneW = 2000;
+var sceneH = 2000;
+var leftMost = -(sceneW/2);
+var topMost = -(sceneH/2);
+
 
 init();
 
@@ -40,14 +54,56 @@ function init() {
     //the renderer's canvas domElement is added to the body
     document.body.appendChild(renderer.domElement);
 
-    //draw the stuffs
-    drawStuffs();
+    //draw the boxes
+    drawBoxes();
+    
+    //draw the particles
+    drawParticles();
 
     renderer.setClearColor(0x000000, 1);
     renderer.render(scene, camera);
 }
 
-function drawStuffs(){
+function drawParticles(){
+    //set up geometry
+    particles = new THREE.Geometry();
+    
+    //set up material
+    particlesMaterial = new THREE.PointCloudMaterial({
+       //initialize the colour as red
+        color: 0,
+        //size scale of our particles
+        size: 3,
+        map: THREE.ImageUtils.loadTexture(
+            'texture/flame.png'
+        ),
+        //do some blending
+        transparent: true,
+        //what kind of blending
+        blending: THREE.NormalBlending
+    });
+    
+    //now we have to add the particles to our geometry.
+    for(var i=0; i<PARTICLES_COUNT; i++){
+        //randomize the positions of our particles
+        var x = Math.random() * sceneW*2 + leftMost*2;
+        var y = Math.random() * sceneH*2 + topMost*2;
+        var z = Math.random() * sceneW*2 + leftMost*2;
+        
+        //create our 3d vector
+        var vertex = new THREE.Vector3(x, y, z);
+        
+        //push it to our geometry
+        particles.vertices.push(vertex);
+    }
+    
+    //initialize our mesh from geometry and material
+    var pointCloud = new THREE.PointCloud(particles, particlesMaterial);
+    
+    scene.add(pointCloud);
+}
+
+function drawBoxes(){
   var size = 15;
   var i = 0;
   var num = 10;
@@ -67,8 +123,6 @@ function drawStuffs(){
           color: randomColour(),
           ambient: 0x808080,
           specular: 0xFFFFFF,
-          shininess: 20,
-          reflectivity: 5.
         });
 
       var box = new THREE.Mesh(geo, mat);
@@ -191,6 +245,20 @@ function animate() {
   }
 
   cameraPositionTheta += 0.003;
+    
+  //update the particles hue
+  particlesHue = (particlesHue + time/40)%1;
+  particlesMaterial.color.setHSL(particlesHue, 1, 2);
+    
+  //update the particles
+  for(var i=0; i<particles.vertices.length; i++){      
+      particles.vertices[i].y += 5 * Math.random();
+      particles.vertices[i].y %= 2000;
+  }
+ 
+  //tell particles to update
+  particles.verticesNeedUpdate = true;
+
   //pan the background
   camera.position.x = 150 + Math.sin(cameraPositionTheta) * -150;
   camera.position.y = 150 + Math.cos(cameraPositionTheta) * -150;
